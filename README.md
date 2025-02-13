@@ -1,1 +1,1 @@
-Dupla: Francisco Alexandro & Gabriel da Silva
+Dupla: Francisco Alexandro & Gabriel da Silva Leal
