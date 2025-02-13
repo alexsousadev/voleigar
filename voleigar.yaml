@@ -1,0 +1,1505 @@
+openapi: 3.0.3
+info:
+  title: Voleigar
+  description: API para gerenciamento de partidas e jogadores de vôlei.
+  termsOfService: http://swagger.io/terms/
+  contact:
+    email: apiteam@swagger.io
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  version: 1.0.1
+
+tags:
+  - name: Jogador
+    description: "Endpoints relacionados a jogadores"
+    externalDocs:
+      description: Find out more
+      url: http://swagger.io
+  - name: Convite
+    description: "Endpoints relacionados a convites"
+  - name: Partida
+    description: "Endpoints relacionados a partidas"
+  - name: Avaliação
+    description: "Endpoints relacionados a avaliações"
+
+paths:
+  ## rotas em relação aos jogadores
+  /jogadores:
+    post:
+      tags:
+        - Jogador
+      summary: Criação de um Jogador
+
+      description: Este endpoint permite a criação de um novo jogador no sistema.
+      requestBody:
+        description: Criação de um jogador
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Jogador"
+            example:
+              nome: "João"
+              email: "joao@email.com"
+              sexo: "Masculino"
+              faixaEtaria: 18
+              categoria: "Especifica"
+              perfil: "JogadorRegular"
+      responses:
+        "201":
+          description: Jogador criado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Jogador"
+              example:
+                id: 1
+                nome: "João"
+                email: "joao@email.com"
+                sexo: "Masculino"
+                reputacao: 10
+                faixaEtaria: 18
+                categoria: "Especifica"
+                perfil: "JogadorRegular"
+                dataCadastro: "2024-03-15T10:30:00Z"
+        "400":
+          description: Requisição inválida (dados faltando ou incorretos)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  statusCode:
+                    type: integer
+                    example: 400
+                  message:
+                    type: string
+                    example: "Dados obrigatórios ausentes ou incorretos."
+                  details:
+                    type: array
+                    items:
+                      type: string
+                    example:
+                      - "O campo 'email' é obrigatório."
+                      - "O campo 'faixaEtaria' deve ser um número positivo."
+
+        "500":
+          description: Erro interno do servidor
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  statusCode:
+                    type: integer
+                    example: 500
+                  message:
+                    type: string
+                    example: "Ocorreu um erro inesperado. Tente novamente mais tarde."
+                  errorId:
+                    type: string
+                    example: "ERRO12345"
+
+    get:
+      tags:
+        - Jogador
+      summary: Lista de Jogadores
+      description: Este endpoint retorna uma lista de todos os jogadores cadastrados no sistema.
+      responses:
+        "200":
+          description: Lista de Jogadores
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Jogador"
+        "400":
+          description: Requisição inválida (dados faltando ou incorretos)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  statusCode:
+                    type: integer
+                    example: 400
+                  message:
+                    type: string
+                    example: "Parâmetros de consulta inválidos."
+                  details:
+                    type: array
+                    items:
+                      type: string
+                    example:
+                      - "O parâmetro 'categoria' é inválido."
+                      - "O parâmetro 'faixaEtaria' deve ser um número inteiro."
+        "500":
+          description: Erro interno do servidor
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  statusCode:
+                    type: integer
+                    example: 500
+                  message:
+                    type: string
+                    example: "Ocorreu um erro interno ao tentar recuperar a lista de jogadores."
+                  errorId:
+                    type: string
+                    example: "ERRO12345"
+      parameters:
+        - in: query
+          name: sortBy
+          schema:
+            type: string
+            enum: [nome, faixaEtaria, categoria]
+          description: Campo para ordenação
+        - in: query
+          name: order
+          schema:
+            type: string
+            enum: [asc, desc]
+          description: Direção da ordenação
+
+  ### SISTEMA DE CONVITES
+  /jogadores/{jogadorId}/convite:
+    post:
+      tags:
+        - Jogador
+      summary: Enviar convite para novo jogador
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: jogadorId
+          required: true
+          schema:
+            type: integer
+          description: ID do jogador que está enviando o convite
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                jogadorId: 1234
+                emailConvidado: "novo.jogador@email.com"
+                mensagem: "Vem jogar vôlei com a gente, mano!"
+      responses:
+        "201":
+          description: Convite enviado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Convite"
+              example:
+                conviteId: 1
+                remetente_id: 1234
+                emailConvidado: "novo.jogador@email.com"
+                status: "PENDENTE"
+                mensagem: "Vem jogar vôlei com a gente, mano!"
+                dataEnvio: "2024-03-15T10:30:00Z"
+                dataExpiracao: "2024-03-22T10:30:00Z"
+                codigo: "CONV123456"
+        "400":
+          description: Dados do convite inválidos ou incompletos
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  statusCode:
+                    type: integer
+                    example: 400
+                  message:
+                    type: string
+                    example: "Dados do convite inválidos ou incompletos."
+                  details:
+                    type: array
+                    items:
+                      type: string
+                    example:
+                      - "O campo 'emailConvidado' é obrigatório."
+                      - "O campo 'mensagem' deve ter no máximo 250 caracteres."
+
+        "403":
+          description: Usuário sem permissão para convidar
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  statusCode:
+                    type: integer
+                    example: 403
+                  message:
+                    type: string
+                    example: "Usuário não tem permissão para enviar convites."
+        "500":
+          description: Erro interno do servidor
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  statusCode:
+                    type: integer
+                    example: 500
+                  message:
+                    type: string
+                    example: "Ocorreu um erro ao enviar o convite. Tente novamente mais tarde."
+                  errorId:
+                    type: string
+                    example: "ERRO12345"
+
+  ###### REMOVENDO JOGADOR
+
+  /jogadores/{jogadorId}:
+    delete:
+      tags:
+        - Jogador
+      summary: Removendo um jogador
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: jogadorId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Jogador removido com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                example:
+                  message: "Jogador removido com sucesso."
+        "403":
+          description: Sem permissão para remover este jogador
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  statusCode:
+                    type: integer
+                    example: 403
+                  message:
+                    type: string
+                    example: "Você não tem permissão para remover este jogador."
+        "404":
+          description: Jogador não encontrado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  statusCode:
+                    type: integer
+                    example: 404
+                  message:
+                    type: string
+                    example: "Jogador com o ID especificado não foi encontrado."
+
+  ### ACEITAR CONVITE
+  /convites/{conviteId}/aceitar:
+    post:
+      tags:
+        - Convite
+      summary: Aceitar convite enviado para um jogador
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: conviteId
+          required: true
+          schema:
+            type: integer
+          description: ID do convite que está sendo aceito
+        - in: query
+          name: codigo
+          required: true
+          schema:
+            type: string
+          description: Código do convite que o convidado recebeu
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                codigo: "CONV234234"
+      responses:
+        "200":
+          description: Convite aceito com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  mensagem: "Convite aceito! Utilize as credenciais temporárias para acessar o sistema e completar seu cadastro"
+                  email: "joao@email.com"
+                  senha_temporaria: "SenhaTemp@123"
+        "400":
+          description: Convite inválido ou já utilizado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  statusCode:
+                    type: integer
+                    example: 400
+                  message:
+                    type: string
+                    example: "O convite é inválido ou já foi utilizado."
+                  details:
+                    type: array
+                    items:
+                      type: string
+                    example:
+                      - "O código do convite não corresponde ao convite enviado."
+                      - "Este convite já foi aceito anteriormente."
+        "403":
+          description: Jogador sem permissão para aceitar o convite
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  statusCode:
+                    type: integer
+                    example: 403
+                  message:
+                    type: string
+                    example: "Você não tem permissão para aceitar este convite."
+
+        "404":
+          description: Convite não encontrado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  statusCode:
+                    type: integer
+                    example: 404
+                  message:
+                    type: string
+                    example: "Convite com o ID especificado não foi encontrado."
+        "500":
+          description: Erro interno do servidor
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  statusCode:
+                    type: integer
+                    example: 500
+                  message:
+                    type: string
+                    example: "Ocorreu um erro ao processar o convite. Tente novamente mais tarde."
+                  errorId:
+                    type: string
+                    example: "ERRO12345"
+
+  /convites/{conviteId}/recusar:
+    post:
+      tags:
+        - Convite
+      summary: Recusar convite
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: codigoConvite
+          required: true
+          schema:
+            type: string
+          description: Código do convite que o jogador recebeu
+      responses:
+        "200":
+          description: Convite recusado com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                example:
+                  message: "Convite recusado com sucesso."
+        "404":
+          description: Convite não encontrado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  statusCode:
+                    type: integer
+                    example: 404
+                  message:
+                    type: string
+                    example: "Convite com o ID especificado não foi encontrado."
+                  details:
+                    type: array
+                    items:
+                      type: string
+                    example:
+                      - "O convite não existe ou foi removido."
+                      - "Verifique se o código do convite está correto."
+        "500":
+          description: Erro interno do servidor
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  statusCode:
+                    type: integer
+                    example: 500
+                  message:
+                    type: string
+                    example: "Ocorreu um erro ao processar a recusa do convite. Tente novamente mais tarde."
+                  errorId:
+                    type: string
+                    example: "ERRO67890"
+
+  ######### CRIANDO E GERENCIANDO PARTIDAS #########
+  /partidas:
+    post:
+      tags:
+        - Partida
+      summary: Criação de uma Partida
+      description: Este endpoint permite a criação de uma nova partida no sistema.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Partida"
+            example:
+              nome: "Partida 1"
+              local: "Estádio da Amizade, Rua dos Sonhos, 123"
+              data: "2022-01-01"
+              categoria: "Mista"
+              status: "EM_ANDAMENTO"
+              jogadores: {}
+              moderador: 223
+              vagas: 10
+
+      responses:
+        "201":
+          description: Partida criada com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Partida"
+              example:
+                id: 1
+                nome: "Partida 1"
+                local: "Estádio da Amizade, Rua dos Sonhos, 123"
+                data: "2022-01-01"
+                categoria: "Mista"
+                status: "EM_ANDAMENTO"
+                jogadores: {}
+                moderador: 223
+                vagas: 10
+        "400":
+          description: Requisição inválida (dados faltando ou incorretos)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  statusCode:
+                    type: integer
+                    example: 400
+                  message:
+                    type: string
+                    example: "Os dados fornecidos para criar a partida estão incompletos ou incorretos."
+                  errors:
+                    type: array
+                    items:
+                      type: string
+                    example:
+                      - "O campo 'nome' é obrigatório."
+                      - "A data fornecida para a partida não é válida."
+
+        "500":
+          description: Erro interno do servidor
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  statusCode:
+                    type: integer
+                    example: 500
+                  message:
+                    type: string
+                    example: "Ocorreu um erro inesperado ao criar a partida. Tente novamente mais tarde."
+                  errorId:
+                    type: string
+                    example: "ERRO12345"
+
+    get:
+      tags:
+        - Partida
+      summary: Lista de Partidas
+      description: Este endpoint retorna uma lista de todas as partidas cadastradas no sistema.
+      responses:
+        "200":
+          description: Lista de Partidas
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Partida"
+        "400":
+          description: Requisição inválida (dados faltando ou incorretos)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  statusCode:
+                    type: integer
+                    example: 400
+                  message:
+                    type: string
+                    example: "A requisição contém parâmetros inválidos ou está incorreta."
+                  details:
+                    type: array
+                    items:
+                      type: string
+                    example:
+                      - "O parâmetro 'data' está em formato inválido."
+
+        "500":
+          description: Erro interno do servidor
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  statusCode:
+                    type: integer
+                    example: 500
+                  message:
+                    type: string
+                    example: "Ocorreu um erro inesperado ao buscar as partidas. Tente novamente mais tarde."
+                  errorId:
+                    type: string
+                    example: "ERRO56789"
+
+      parameters:
+        - in: query
+          name: search
+          schema:
+            type: string
+          description: Busca por local da partida
+
+  ## LISTAR JOGADORES DA PARTIDA
+  /partidas/{partidaId}/jogadores:
+    get:
+      tags:
+        - Partida
+      summary: Listar jogadores de uma partida
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: partidaId
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Lista de jogadores participantes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Jogador"
+        "404":
+          description: Partida não encontrada
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  statusCode:
+                    type: integer
+                    example: 404
+                  message:
+                    type: string
+                    example: "A partida com o ID fornecido não foi encontrada."
+                  errorDetails:
+                    type: string
+                    example: "Verifique se o ID da partida está correto e tente novamente."
+
+  #### SOLICITANDO PARTICIPAÇÃO NA PARTIDA
+  /partidas/{partidaId}/solicitacoes:
+    post:
+      tags:
+        - Partida
+      summary: Solicitar participação em uma partida
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: partidaId
+          required: true
+          schema:
+            type: integer
+        - in: query
+          name: jogadorId
+          required: true
+          schema:
+            type: integer
+
+      responses:
+        "201":
+          description: Solicitação enviada com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SolicitacaoPartida"
+              example:
+                solicitacaoId: 1
+                jogadorId: 1234
+                partidaId: 1234
+                status: "AGUARDANDO"
+                dataSolicitacao: "2024-03-15T10:30:00Z"
+                dataResposta: null
+        "400":
+          description: Partida não aceita mais participantes
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  statusCode:
+                    type: integer
+                    example: 400
+                  message:
+                    type: string
+                    example: "Não é possível solicitar participação, pois a partida não aceita mais participantes."
+                  details:
+                    type: string
+                    example: "Verifique o número de vagas disponíveis para a partida."
+
+        "404":
+          description: Partida não encontrada
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  statusCode:
+                    type: integer
+                    example: 404
+                  message:
+                    type: string
+                    example: "A partida com o ID fornecido não foi encontrada."
+                  errorDetails:
+                    type: string
+                    example: "Verifique o ID da partida e tente novamente."
+        "409":
+          description: Já existe uma solicitação pendente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  statusCode:
+                    type: integer
+                    example: 409
+                  message:
+                    type: string
+                    example: "Já existe uma solicitação pendente para este jogador nesta partida."
+                  details:
+                    type: string
+                    example: "O jogador já enviou uma solicitação de participação para esta partida."
+
+  # Endpoint para desistência
+  /partidas/{partidaId}/desistencia:
+    post:
+      tags:
+        - Partida
+      summary: Registrar desistência de participação
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: partidaId
+          required: true
+          schema:
+            type: integer
+        - in: query
+          name: jogadorId
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Desistencia"
+      responses:
+        "200":
+          description: Desistência registrada com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  statusCode:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                    example: "A desistência de participação foi registrada com sucesso."
+                  jogadorId:
+                    type: integer
+                    example: 1234
+                  partidaId:
+                    type: integer
+                    example: 5678
+                  dataDesistencia:
+                    type: string
+                    format: date-time
+                    example: "2024-03-15T10:30:00Z"
+
+    #### LISTAR SOLICITAÇÕES DE UMA PARTIDA
+    get:
+      tags:
+        - Partida
+      summary: Listar todas as solicitações de participação de uma partida
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: partidaId
+          required: true
+          schema:
+            type: integer
+          description: ID da partida
+        - in: query
+          name: moderadorId
+          required: true
+          schema:
+            type: integer
+          description: ID do moderador que solicita a lista de participações, para verificação de permissão
+      responses:
+        "200":
+          description: Lista de solicitações de participação
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SolicitacaoPartida"
+        "403":
+          description: Sem permissão para acessar as solicitações desta partida
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  statusCode:
+                    type: integer
+                    example: 403
+                  message:
+                    type: string
+                    example: "Você não tem permissão para acessar as solicitações de participação desta partida."
+
+        "404":
+          description: Partida ou solicitações não encontradas
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  statusCode:
+                    type: integer
+                    example: 404
+                  message:
+                    type: string
+                    example: "A partida ou as solicitações de participação não foram encontradas."
+
+  #### PERMITINDO JOGADORES DE PARTICIPIR DE UMA PARTIDA
+  /partidas/{partidaId}/solicitacoes/{solicitacaoId}/aprovar:
+    put:
+      tags:
+        - Partida
+      summary: Aprovar ou rejeitar uma solicitação de participação
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: partidaId
+          required: true
+          schema:
+            type: integer
+        - in: path
+          name: solicitacaoId
+          required: true
+          schema:
+            type: integer
+        - in: query
+          name: moderadorId
+          required: true
+          schema:
+            type: integer
+          description: ID do moderador autorizando a ação
+
+      responses:
+        "200":
+          description: Solicitação aprovada com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SolicitacaoPartida"
+              example:
+                solicitacaoId: 1
+                jogadorId: 1234
+                partidaId: 1234
+                status: "APROVADO"
+                dataSolicitacao: "2024-02-15T10:30:00Z"
+                dataResposta: "2024-03-15T10:30:00Z"
+        "403":
+          description: Sem permissão para moderar esta partida
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  statusCode:
+                    type: integer
+                    example: 403
+                  message:
+                    type: string
+                    example: "Você não tem permissão para moderar esta partida e aprovar ou rejeitar solicitações."
+
+        "404":
+          description: Partida ou solicitação não encontrada
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  statusCode:
+                    type: integer
+                    example: 404
+                  message:
+                    type: string
+                    example: "A partida ou a solicitação de participação não foi encontrada."
+
+  /partidas/{partidaId}/solicitacoes/{solicitacaoId}/recusar:
+    put:
+      tags:
+        - Partida
+      summary: Recusar uma solicitação de participação
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: partidaId
+          required: true
+          schema:
+            type: integer
+        - in: path
+          name: solicitacaoId
+          required: true
+          schema:
+            type: integer
+        - in: query
+          name: moderadorId
+          required: true
+          schema:
+            type: integer
+          description: ID do moderador autorizando a ação
+      responses:
+        "200":
+          description: Solicitação recusada com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SolicitacaoPartida"
+              example:
+                solicitacaoId: 1
+                jogadorId: 1234
+                partidaId: 1334
+                status: "RECUSADO"
+                dataSolicitacao: "2024-02-15T10:30:00Z"
+                dataResposta: "2024-03-15T10:30:00Z"
+        "403":
+          description: Sem permissão para moderar esta partida
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  statusCode:
+                    type: integer
+                    example: 403
+                  message:
+                    type: string
+                    example: "Você não tem permissão para moderar esta partida e recusar solicitações."
+
+        "404":
+          description: Partida ou solicitação não encontrada
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  statusCode:
+                    type: integer
+                    example: 404
+                  message:
+                    type: string
+                    example: "A partida ou a solicitação de participação não foi encontrada."
+
+  ###### REMOVENDO JOGADOR DE UMA PARTIDA
+  /partidas/{partidaId}/jogadores/{jogadorId}:
+    delete:
+      tags:
+        - Partida
+      summary: Remover um jogador de uma partida
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: partidaId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: jogadorId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            example:
+              jogadorId: 14
+              comentario: "Jogador removido por agressão em campo"
+      responses:
+        "200":
+          description: Jogador removido com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                example:
+                  message: "Jogador removido com sucesso."
+        "403":
+          description: Sem permissão para remover este jogador
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  statusCode:
+                    type: integer
+                    example: 403
+                  message:
+                    type: string
+                    example: "Você não tem permissão para remover este jogador desta partida."
+        "404":
+          description: Partida ou jogador não encontrado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  statusCode:
+                    type: integer
+                    example: 404
+                  message:
+                    type: string
+                    example: "A partida ou o jogador não foi encontrado."
+
+  #### AVALIAÇÃO DA PARTIDA
+  /partidas/{partidaId}/avaliacoes:
+    post:
+      tags:
+        - Avaliação
+      summary: Fazer avaliação de uma partida
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: partidaId
+          required: true
+          schema:
+            type: integer
+          description: ID da partida que está sendo avaliada
+        - in: query
+          name: jogadorId
+          required: true
+          schema:
+            type: integer
+          description: ID do jogador que está avaliando a partida
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AvaliacaoPartida"
+            example:
+              jogadorId: 1234
+              nota: 9
+              comentario: "Lugar muito bem estruturado"
+      responses:
+        "201":
+          description: Avaliação criada com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AvaliacaoPartida"
+              example:
+                avalicaoId: 1
+                jogadorId: 1234
+                nota: 9
+                comentario: "Lugar muito bem estruturado"
+                dataAvaliacao: "2022-01-15T10:30:00Z"
+        "400":
+          description: Requisição inválida (dados faltando ou incorretos)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  statusCode:
+                    type: integer
+                    example: 400
+                  message:
+                    type: string
+                    example: "Os dados fornecidos estão faltando ou são inválidos. Verifique os parâmetros e tente novamente."
+        "404":
+          description: Partida não encontrada
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  statusCode:
+                    type: integer
+                    example: 404
+                  message:
+                    type: string
+                    example: "A partida com o ID fornecido não foi encontrada."
+        "500":
+          description: Erro interno do servidor
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  statusCode:
+                    type: integer
+                    example: 500
+                  message:
+                    type: string
+                    example: "Ocorreu um erro interno no servidor. Tente novamente mais tarde."
+
+    get:
+      tags:
+        - Avaliação
+      summary: Listar avaliações de uma partida
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: partidaId
+          required: true
+          schema:
+            type: integer
+
+        - in: query
+          name: sortBy
+          required: false
+          schema:
+            type: string
+            enum: [data, nota]
+          description: Atributo pelo qual pode ordenar as avaliações
+        - in: query
+          name: order
+          schema:
+            type: string
+            enum: [asc, desc]
+          description: Ordem da listagem
+      responses:
+        "200":
+          description: Lista de avaliações da partida
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AvaliacaoPartida"
+                example:
+                  - avalicaoId: 8
+                    jogadorId: 1234
+                    nota: 9
+                    comentario: "Pareceu uma partida profissional"
+                    dataAvaliacao: "2022-01-15T10:30:00Z"
+                  - avalicaoId: 12
+                    jogadorId: 1211
+                    nota: 2
+                    comentario: "O lugar tava caindo os pedaços"
+                    dataAvaliacao: "2024-07-15T10:30:00Z"
+        "404":
+          description: Partida não encontrada
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  statusCode:
+                    type: integer
+                    example: 404
+                  message:
+                    type: string
+                    example: "A partida com o ID fornecido não foi encontrada. Verifique o ID e tente novamente."
+
+  #### AVALIAÇÃO DO JOGADOR
+  /jogadores/{jogadorId}/avaliacoes:
+    post:
+      tags:
+        - Avaliação
+      summary: Fazer avaliação de um jogador
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: jogadorId
+          required: true
+          schema:
+            type: integer
+        - in: query
+          name: avaliadorId
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AvaliacaoJogador"
+            example:
+              avaliadorId: 1234
+              nota: 9
+              comentario: "Esse é brabo"
+      responses:
+        "201":
+          description: Avaliação criada com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AvaliacaoJogador"
+              example:
+                avalicaoId: 1
+                avaliadorId: 1234
+                jogadorId: 1233
+                nota: 9
+                comentario: "Esse é brabo"
+                dataAvaliacao: "2024-03-15T10:30:00Z"
+        "400":
+          description: Requisição inválida (dados faltando ou incorretos)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  statusCode:
+                    type: integer
+                    example: 400
+                  message:
+                    type: string
+                    example: "Os dados fornecidos estão incompletos ou incorretos. Verifique os campos e tente novamente."
+        "404":
+          description: Jogador não encontrado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  statusCode:
+                    type: integer
+                    example: 404
+                  message:
+                    type: string
+                    example: "O jogador com o ID fornecido não foi encontrado. Verifique o ID e tente novamente."
+
+        "500":
+          description: Erro interno do servidor
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  statusCode:
+                    type: integer
+                    example: 500
+                  message:
+                    type: string
+                    example: "Ocorreu um erro interno no servidor. Tente novamente mais tarde."
+
+    get:
+      tags:
+        - Avaliação
+      summary: Listar avaliações de um jogador
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: jogadorId
+          required: true
+          schema:
+            type: integer
+        - in: query
+          name: sortBy
+          required: false
+          schema:
+            type: string
+            enum: [data, nota]
+          description: Atributo pelo qual pode ordenar as avaliações
+        - in: query
+          name: order
+          schema:
+            type: string
+            enum: [asc, desc]
+          description: Ordem da listagem
+
+      responses:
+        "200":
+          description: Lista de avaliações do jogador
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AvaliacaoJogador"
+              example:
+                - avalicaoId: 1
+                  avaliadorId: 1114
+                  jogadorId: 1233
+                  nota: 5
+                  comentario: "Jogador muito faminha"
+                  dataAvaliacao: "2024-03-15T10:30:00Z"
+                - avalicaoId: 7
+                  avaliadorId: 1211
+                  jogadorId: 1233
+                  nota: 2
+                  comentario: "Não sabe nem se posicionar"
+                  dataAvaliacao: "2024-07-15T10:30:00Z"
+        "404":
+          description: Jogador não encontrado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  statusCode:
+                    type: integer
+                    example: 404
+                  message:
+                    type: string
+                    example: "O jogador com o ID fornecido não foi encontrado. Verifique o ID e tente novamente."
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    AvaliacaoPartida:
+      type: object
+      properties:
+        id:
+          type: integer
+        partidaId:
+          type: integer
+        jogadorId:
+          type: integer
+        nota:
+          type: integer
+          description: Nota de 1 a 10
+        comentario:
+          type: string
+          description: Comentário sobre a avaliação
+        dataAvaliacao:
+          type: string
+          format: date-time
+
+    # Adicionando a estrutura de avaliação do jogador
+    AvaliacaoJogador:
+      type: object
+      properties:
+        avalicaoId:
+          type: integer
+        jogadorId:
+          type: integer
+        avaliadorId:
+          type: integer
+        nota:
+          type: integer
+          description: Nota de 1 a 10
+        comentario:
+          type: string
+          description: Comentário sobre o jogador
+        dataAvaliacao:
+          type: string
+          format: date-time
+
+    Jogador: ## Estrutura de um jogador
+      type: object
+      properties:
+        id:
+          type: integer
+        nome:
+          type: string
+        email:
+          type: string
+          format: email
+        sexo:
+          type: string
+          enum: [Masculino, Feminino]
+        faixaEtaria:
+          type: integer
+          description: Faixa etária do jogador
+        categoria:
+          type: string
+          enum: [Especifica, Mista]
+          description: Tipo da categoria do jogador
+        reputacao:
+          type: integer
+        perfil:
+          type: string
+          enum: [Moderador, JogadorRegular]
+          description: Define o perfil do jogador na plataforma
+        dataCadastro:
+          type: string
+          format: date-time
+
+    Partida: ## Estrutura de uma partida
+      type: object
+      properties:
+        id:
+          type: integer
+        local:
+          type: string
+        data:
+          type: string
+          format: date
+        categoria:
+          type: string
+          enum: [Especifica, Mista]
+          description: Categoria da partida
+        status:
+          type: string
+          enum: [ABERTA, EM_ANDAMENTO, FINALIZADA, CANCELADA]
+          description: Status da partida
+        jogadores:
+          type: array
+          items:
+            $ref: "#/components/schemas/SolicitacaoPartida"
+          description: Lista de jogadores participantes da partida
+        moderador:
+          type: integer
+          description: ID do moderador da partida
+        vagas:
+          type: integer
+          description: Número de vagas disponíveis na partida
+
+    SolicitacaoPartida:
+      type: object
+      properties:
+        solicitacaoId:
+          type: integer
+        jogadorId:
+          type: integer
+        partidaId:
+          type: integer
+        status:
+          type: string
+          enum: [AGUARDANDO, APROVADO, RECUSADO]
+        dataSolicitacao:
+          type: string
+          format: date
+        dataResposta:
+          type: string
+          format: date
+
+    Convite:
+      type: object
+      properties:
+        conviteId:
+          type: integer
+        jogadorId:
+          type: integer
+          description: Id do jogador que gerou o convite
+        emailConvidado:
+          type: string
+          format: email
+          description: Email do convidado
+        dataEnvio:
+          type: string
+          format: date-time
+        dataExpiracao:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [PENDENTE, ACEITO, RECUSADO, EXPIRADO]
+        mensagem:
+          type: string
+          description: Mensagem do convite
+        codigo:
+          type: string
+          description: Código único para acessar o convite
+          example: "PART1234"
+
+    Desistencia:
+      type: object
+      properties:
+        id:
+          type: integer
+        partidaId:
+          type: integer
+        jogadorId:
+          type: integer
+        motivo:
+          type: string
+        dataDesistencia:
+          type: string
+          format: date-time
